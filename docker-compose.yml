@@ -1,0 +1,102 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # --- DATABASE ---
+  mongodb:
+    image: mongo:latest
+    container_name: cookedpad_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - cookedpad-network
+    restart: unless-stopped
+
+  # --- BACKEND SERVICES ---
+  service-auth:
+    build: ./service-auth
+    container_name: service_auth
+    ports:
+      - "3001:3000"
+    networks:
+      - cookedpad-network
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/cookedpad
+      - JWT_SECRET=supersecretkey123
+      - PORT=3000
+    restart: unless-stopped
+
+  service-users:
+    build: ./service-users
+    container_name: service_users
+    ports:
+      - "3002:3000"
+    networks:
+      - cookedpad-network
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/cookedpad
+      - JWT_SECRET=supersecretkey123
+      - PORT=3000
+    restart: unless-stopped
+
+  service-recipes:
+    build: ./service-recipes
+    container_name: service_recipes
+    ports:
+      - "3003:3000"
+    networks:
+      - cookedpad-network
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/cookedpad
+      - JWT_SECRET=supersecretkey123
+      - PORT=3000
+    restart: unless-stopped
+
+  service-comments:
+    build: ./service-comments
+    container_name: service_comments
+    ports:
+      - "3004:3000"
+    networks:
+      - cookedpad-network
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/cookedpad
+      - PORT=3000
+    restart: unless-stopped
+
+  # --- FRONTEND ---
+  frontend-ui:
+    build: ./frontend-ui
+    container_name: frontend_ui
+    ports:
+      - "8080:80"
+    networks:
+      - cookedpad-network
+    depends_on:
+      - service-auth
+      - service-users
+      - service-recipes
+      - service-comments
+    environment:
+      - REACT_APP_API_AUTH=http://localhost:3001
+      - REACT_APP_API_USERS=http://localhost:3002
+      - REACT_APP_API_RECIPES=http://localhost:3003
+      - REACT_APP_API_COMMENTS=http://localhost:3004
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  cookedpad-network:
+    driver: bridge

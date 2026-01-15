@@ -7,7 +7,7 @@ import axios from 'axios';
 function RecipeDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
-  
+  const [showVideo, setShowVideo] = useState(false);
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -99,6 +99,24 @@ function RecipeDetail() {
     } catch (error) {
       console.error('Error saving recipe:', error);
     }
+  };
+
+  // Fungsi untuk extract YouTube ID dari URL
+  const getYouTubeId = (url) => {
+    if (!url) return null;
+    
+    // Handle berbagai format YouTube URL
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  // Fungsi untuk format YouTube URL untuk embed
+  const getYouTubeEmbedUrl = (url) => {
+    const videoId = getYouTubeId(url);
+    if (!videoId) return null;
+    return `https://www.youtube.com/embed/${videoId}`;
   };
 
   const handleCommentSubmit = async (e) => {
@@ -367,6 +385,85 @@ function RecipeDetail() {
               )}
             </div>
           </div>
+
+          {recipe.youtubeUrl && (
+            <div className="card" style={{ padding: '30px', marginTop: '30px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3>🎬 Video Resep</h3>
+                <button 
+                  onClick={() => setShowVideo(!showVideo)}
+                  className="btn btn-outline"
+                  style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  {showVideo ? 'Sembunyikan Video' : 'Tampilkan Video'}
+                </button>
+              </div>
+              
+              {showVideo ? (
+                <div>
+                  <div style={{ 
+                    position: 'relative', 
+                    paddingBottom: '56.25%', /* 16:9 Aspect Ratio */
+                    height: 0, 
+                    overflow: 'hidden',
+                    borderRadius: '8px',
+                    marginBottom: '15px'
+                  }}>
+                    <iframe
+                      src={getYouTubeEmbedUrl(recipe.youtubeUrl)}
+                      title="Video resep"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        border: 0
+                      }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  
+                  <div style={{ textAlign: 'center' }}>
+                    <a 
+                      href={recipe.youtubeUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn btn-outline"
+                      style={{ marginTop: '10px' }}
+                    >
+                      <span style={{ marginRight: '8px' }}>▶️</span>
+                      Buka di YouTube
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => setShowVideo(true)}
+                  style={{
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    padding: '40px 20px',
+                    background: '#f8f9fa',
+                    borderRadius: '8px',
+                    border: '2px dashed #ddd'
+                  }}
+                >
+                  <div style={{ fontSize: '48px', marginBottom: '15px' }}>
+                    ▶️
+                  </div>
+                  <h4 style={{ marginBottom: '10px' }}>Tonton Video Resep</h4>
+                  <p className="muted" style={{ marginBottom: '20px' }}>
+                    Klik untuk menonton video tutorial resep ini
+                  </p>
+                  <button className="btn btn-primary">
+                    Putar Video
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Comments Section */}
           <div className="card" style={{ padding: '30px', marginTop: '30px' }}>

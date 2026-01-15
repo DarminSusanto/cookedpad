@@ -1,0 +1,137 @@
+/* src/components/CookieBanner.css */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #ddd;
+  z-index: 9999;
+  padding: 20px;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.cookie-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+}
+
+.cookie-text {
+  flex: 1;
+  min-width: 300px;
+}
+
+.cookie-text h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.cookie-text p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.cookie-links {
+  margin-top: 10px;
+}
+
+.cookie-links a {
+  color: #ff6b6b;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.cookie-links a:hover {
+  text-decoration: underline;
+}
+
+.cookie-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cookie-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.cookie-btn.decline {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.cookie-btn.decline:hover {
+  background: #f8f9fa;
+}
+
+.cookie-btn.accept {
+  background: #ff6b6b;
+  color: white;
+}
+
+.cookie-btn.accept:hover {
+  background: #ff5252;
+}
+
+.cookie-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #999;
+  padding: 5px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cookie-close:hover {
+  color: #333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cookie-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .cookie-buttons {
+    width: 100%;
+  }
+  
+  .cookie-btn {
+    flex: 1;
+  }
+}

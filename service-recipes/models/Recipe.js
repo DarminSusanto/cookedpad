@@ -64,7 +64,8 @@ const recipeSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  youtubeUrl: { type: String }, 
 });
 
 module.exports = mongoose.model('Recipe', recipeSchema);

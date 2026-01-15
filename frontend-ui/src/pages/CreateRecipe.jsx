@@ -18,7 +18,8 @@ function CreateRecipe() {
     difficulty: 'sedang',
     ingredients: [{ name: '', quantity: '', unit: '' }],
     instructions: [{ step: 1, description: '', image: '' }],
-    images: []
+    images: [],
+    youtubeUrl: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -385,6 +386,24 @@ function CreateRecipe() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '5px' }}>
+            Link Video YouTube (Opsional)
+          </label>
+          <input
+            type="url"
+            name="youtubeUrl" 
+            value={formData.youtubeUrl}
+            onChange={handleChange}
+            className="form-control"
+            placeholder="https://www.youtube.com/watch?v=..."
+            disabled={loading}
+          />
+          <small className="muted" style={{ fontSize: '12px', display: 'block', marginTop: '5px' }}>
+            Masukkan link YouTube untuk menampilkan video resep
+          </small>
         </div>
 
         {/* Instructions Section */}

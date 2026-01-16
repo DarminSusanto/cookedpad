@@ -1,4 +1,6 @@
-FROM node:18-alpine as build
+#forntend-ui/Dockerfile
+
+FROM node:18-alpine AS build
 
 WORKDIR /app
 

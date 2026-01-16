@@ -68,7 +68,7 @@ function Profile() {
     setLoading(true);
 
     try {
-      const response = await axios.put(`${API_URL}/profile`, formData, {
+      const response = await axios.put(`${API_URL}/api/profile`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -104,7 +104,7 @@ function Profile() {
     try {
       const imageBase64 = await convertToBase64(selectedFile);
       
-      const response = await axios.put(`${API_URL}/profile/picture`, 
+      const response = await axios.put(`${API_URL}/api/profile/picture`, 
         { profilePicture: imageBase64 },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -139,7 +139,7 @@ function Profile() {
     setLoading(true);
     
     try {
-      const response = await axios.put(`${API_URL}/profile/password`, {
+      const response = await axios.put(`${API_URL}/api/profile/password`, {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword
       }, {

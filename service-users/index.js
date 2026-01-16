@@ -65,7 +65,7 @@ app.get('/', (req, res) => {
 });
 
 // Get user profile
-app.get('/profile', authenticateToken, async (req, res) => {
+app.get('/api/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
     
@@ -83,7 +83,7 @@ app.get('/profile', authenticateToken, async (req, res) => {
 });
 
 // Update user profile
-app.put('/profile', authenticateToken, async (req, res) => {
+app.put('/api/profile', authenticateToken, async (req, res) => {
   try {
     const { fullName, bio } = req.body;
     
@@ -113,7 +113,7 @@ app.put('/profile', authenticateToken, async (req, res) => {
 });
 
 // Update profile picture (Base64)
-app.put('/profile/picture', authenticateToken, async (req, res) => {
+app.put('/api/profile/picture', authenticateToken, async (req, res) => {
   try {
     const { profilePicture } = req.body;
     
@@ -148,7 +148,7 @@ app.put('/profile/picture', authenticateToken, async (req, res) => {
 });
 
 // Change password
-app.put('/profile/password', authenticateToken, async (req, res) => {
+app.put('/api/profile/password', authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     
@@ -185,7 +185,7 @@ app.put('/profile/password', authenticateToken, async (req, res) => {
 });
 
 // Get user by ID (public)
-app.get('/:userId', async (req, res) => {
+app.get('/api/users/:userId', async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).select('-password -email');
     

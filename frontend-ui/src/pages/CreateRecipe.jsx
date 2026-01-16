@@ -136,6 +136,13 @@ function CreateRecipe() {
     setError('');
     setSuccess('');
 
+    // Check if token is valid
+    if (!token) {
+      setError('Token tidak valid. Silakan login kembali.');
+      setLoading(false);
+      return;
+    }
+
     // Validation
     if (!formData.title.trim()) {
       setError('Judul resep harus diisi');
@@ -180,7 +187,7 @@ function CreateRecipe() {
   };
 
   return (
-    <div className="create-recipe-page">
+    <div className="create-recipe-page" style={{ marginBottom: '100px' }}>  {/* Added marginBottom to prevent footer overlap */}
       <h1 className="page-title">Buat Resep Baru</h1>
 
       {error && (
@@ -388,24 +395,6 @@ function CreateRecipe() {
           ))}
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>
-            Link Video YouTube (Opsional)
-          </label>
-          <input
-            type="url"
-            name="youtubeUrl" 
-            value={formData.youtubeUrl}
-            onChange={handleChange}
-            className="form-control"
-            placeholder="https://www.youtube.com/watch?v=..."
-            disabled={loading}
-          />
-          <small className="muted" style={{ fontSize: '12px', display: 'block', marginTop: '5px' }}>
-            Masukkan link YouTube untuk menampilkan video resep
-          </small>
-        </div>
-
         {/* Instructions Section */}
         <div className="card" style={{ padding: '30px', marginBottom: '30px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -553,17 +542,42 @@ function CreateRecipe() {
               </div>
             </div>
           )}
+
+          <div style={{ marginTop: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>
+              Link Video YouTube (Opsional)
+            </label>
+            <input
+              type="url"
+              name="youtubeUrl" 
+              value={formData.youtubeUrl}
+              onChange={handleChange}
+              className="form-control"
+              placeholder="https://www.youtube.com/watch?v=..."
+              disabled={loading}
+            />
+            <small className="muted" style={{ fontSize: '12px', display: 'block', marginTop: '5px' }}>
+              Masukkan link YouTube untuk menampilkan video resep
+            </small>
+          </div>
         </div>
 
         {/* Submit Button */}
-        <div style={{ textAlign: 'center', marginTop: '40px' }}>
-          <button 
-            type="submit" 
-            className="btn btn-primary"
-            style={{ padding: '15px 40px', fontSize: '16px' }}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '20px' }}>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-outline"
             disabled={loading}
           >
-            {loading ? 'Menyimpan Resep...' : 'Publikasikan Resep'}
+            Batal
+          </button>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+          >
+            {loading ? 'Menyimpan...' : 'Simpan Resep'}
           </button>
         </div>
       </form>

@@ -2,7 +2,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import CookieBanner from '../components/CookieBanner';
 import './Home.css';
 
 function Home() {
@@ -92,8 +91,6 @@ function Home() {
         </div>
       </div>
 
-      {/* Cookie Banner */}
-      <CookieBanner />
     </div>
   );
 }

@@ -96,6 +96,19 @@ export const AuthProvider = ({ children }) => {
     setUser(updatedUser);
   };
 
+  const checkTokenExpiry = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiry = payload.exp * 1000; // Convert to milliseconds
+      return Date.now() > expiry;
+    } catch {
+      return true;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{

@@ -39,14 +39,28 @@ function Profile() {
 
   // Initialize form with user data
   useEffect(() => {
-    if (user) {
-      setFormData({
-        fullName: user.fullName || '',
-        bio: user.bio || ''
-      });
-      fetchUserRecipes();
-    }
-  }, [user]);
+  console.log('Profile page loaded');
+  console.log('Token exists:', !!token);
+  console.log('Token length:', token?.length);
+  
+  // Debug: cek token di localStorage
+  const localToken = localStorage.getItem('token');
+  console.log('LocalStorage token:', localToken?.substring(0, 20) + '...');
+  
+  if (!token) {
+    console.warn('Token tidak ditemukan! Redirect ke login...');
+    // navigate('/login');
+    // return;
+  }
+  
+  if (user) {
+    setFormData({
+      fullName: user.fullName || '',
+      bio: user.bio || ''
+    });
+    fetchUserRecipes();
+  }
+}, [user, token, navigate]);
 
   // Fetch user's recipes
   const fetchUserRecipes = async () => {
@@ -123,43 +137,117 @@ function Profile() {
 
   // Handle password change
   const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setPasswordMessage('');
+  e.preventDefault();
+  setPasswordMessage('');
+  
+  // Validation
+  if (!passwordForm.currentPassword) {
+    setPasswordMessage('❌ Password saat ini harus diisi');
+    return;
+  }
+  
+  if (!passwordForm.newPassword) {
+    setPasswordMessage('❌ Password baru harus diisi');
+    return;
+  }
+  
+  if (passwordForm.newPassword.length < 6) {
+    setPasswordMessage('❌ Password baru minimal 6 karakter');
+    return;
+  }
+  
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    setPasswordMessage('❌ Password baru dan konfirmasi password tidak cocok');
+    return;
+  }
+  
+  setLoading(true);
+  
+  try {
+    console.log('Mengirim request ubah password...');
+    console.log('Token:', token ? 'Token ada' : 'Token tidak ada');
     
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage('❌ Password baru dan konfirmasi password tidak cocok');
-      return;
+    // Coba beberapa endpoint yang mungkin
+    const endpoints = [
+      `${API_URL}/api/users/change-password`,
+      `${API_URL}/api/profile/password`,
+      `${API_URL}/api/auth/change-password`,
+      `${API_URL}/change-password`
+    ];
+    
+    let response;
+    let lastError;
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Mencoba endpoint: ${endpoint}`);
+        response = await axios.put(
+          endpoint,
+          {
+            currentPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword
+          },
+          {
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data) {
+          console.log('Response dari server:', response.data);
+          break;
+        }
+      } catch (err) {
+        lastError = err;
+        console.log(`Endpoint ${endpoint} gagal:`, err.message);
+        continue;
+      }
     }
     
-    if (passwordForm.newPassword.length < 6) {
-      setPasswordMessage('❌ Password baru minimal 6 karakter');
-      return;
+    if (!response) {
+      throw lastError || new Error('Tidak ada endpoint yang berhasil');
     }
     
-    setLoading(true);
-    
-    try {
-      const response = await axios.put(`${API_URL}/api/profile/password`, {
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+    if (response.data.success || response.data.message) {
+      setPasswordMessage('✅ Password berhasil diubah!');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
       });
       
-      if (response.data.success) {
-        setPasswordMessage('✅ Password berhasil diubah!');
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
-      }
-    } catch (error) {
-      setPasswordMessage('❌ ' + (error.response?.data?.message || 'Gagal mengubah password'));
-    } finally {
-      setLoading(false);
+      // Auto logout setelah ubah password (optional)
+      setTimeout(() => {
+        alert('Password berhasil diubah. Silakan login kembali.');
+        logout();
+        navigate('/login');
+      }, 2000);
     }
-  };
+  } catch (error) {
+    console.error('Error detail:', error);
+    
+    // Cek jika token invalid
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      setPasswordMessage('❌ Token tidak valid. Silakan login kembali.');
+      setTimeout(() => {
+        logout();
+        navigate('/login');
+      }, 1500);
+    } 
+    // Cek jika password lama salah
+    else if (error.response?.status === 400) {
+      setPasswordMessage('❌ Password saat ini salah');
+    } 
+    // Error lainnya
+    else {
+      setPasswordMessage('❌ ' + (error.response?.data?.message || error.message || 'Gagal mengubah password'));
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Handle form changes
   const handleChange = (e) => {
@@ -169,6 +257,29 @@ function Profile() {
     });
   };
 
+  const refreshToken = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token');
+      }
+      
+      const response = await axios.post(`${API_URL}/api/auth/refresh`, {
+        refreshToken
+      });
+      
+      if (response.data.accessToken) {
+        localStorage.setItem('token', response.data.accessToken);
+      }
+      
+      return response.data.accessToken;
+    } catch (error) {
+      console.error('Refresh token failed:', error);
+      logout();
+      navigate('/login');
+      return null;
+    }
+  };
   // Handle password form changes
   const handlePasswordChange = (e) => {
     setPasswordForm({
@@ -589,103 +700,200 @@ function Profile() {
 
           {/* Change Password Tab */}
           {activeTab === 'password' && (
-            <form onSubmit={handlePasswordSubmit} className="card" style={{ padding: '25px' }}>
+            <div className="card" style={{ padding: '25px' }}>
               <h2 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span>🔒</span> Ubah Password
               </h2>
               
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Password Saat Ini *</label>
-                <input
-                  type="password"
-                  name="currentPassword"
-                  value={passwordForm.currentPassword}
-                  onChange={handlePasswordChange}
-                  className="form-control"
-                  required
-                  disabled={loading}
-                  style={{ padding: '12px' }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Password Baru *</label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={passwordForm.newPassword}
-                  onChange={handlePasswordChange}
-                  className="form-control"
-                  required
-                  disabled={loading}
-                  style={{ padding: '12px' }}
-                />
-                <small className="muted" style={{ fontSize: '12px', display: 'block', marginTop: '5px' }}>
-                  Minimal 6 karakter
-                </small>
-              </div>
-
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Konfirmasi Password Baru *</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={passwordForm.confirmPassword}
-                  onChange={handlePasswordChange}
-                  className="form-control"
-                  required
-                  disabled={loading}
-                  style={{ padding: '12px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? '⏳ Memproses...' : '🔐 Ubah Password'}
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-outline"
-                  onClick={() => setPasswordForm({
-                    currentPassword: '',
-                    newPassword: '',
-                    confirmPassword: ''
-                  })}
-                  disabled={loading}
-                >
-                  🔄 Clear
-                </button>
-              </div>
-              
-              {passwordMessage && (
+              {!token && (
                 <div style={{ 
-                  marginTop: '15px',
-                  padding: '12px',
+                  padding: '15px', 
+                  background: '#fff3cd', 
+                  border: '1px solid #ffeaa7',
                   borderRadius: '4px',
-                  background: passwordMessage.includes('✅') ? '#e8f5e9' : '#ffebee',
-                  color: passwordMessage.includes('✅') ? '#2e7d32' : '#c62828',
-                  border: `1px solid ${passwordMessage.includes('✅') ? '#c8e6c9' : '#ffcdd2'}`
+                  marginBottom: '20px',
+                  color: '#856404'
                 }}>
-                  {passwordMessage}
+                  ⚠️ <strong>Token tidak ditemukan!</strong> 
+                  <div style={{ marginTop: '5px', fontSize: '14px' }}>
+                    Silakan <Link to="/login" style={{ color: '#d63031', fontWeight: 'bold' }}>login ulang</Link> 
+                    untuk melanjutkan.
+                  </div>
                 </div>
               )}
               
-              <div style={{ 
-                marginTop: '30px', 
-                padding: '15px', 
-                background: '#f8f9fa', 
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}>
-                <h4 style={{ marginBottom: '10px', fontSize: '14px' }}>💡 Tips Password Aman:</h4>
-                <ul style={{ paddingLeft: '20px', margin: 0, color: '#666' }}>
-                  <li>Gunakan kombinasi huruf besar/kecil</li>
-                  <li>Tambahkan angka dan simbol</li>
-                  <li>Minimal 6 karakter</li>
-                  <li>Jangan gunakan password yang sama dengan akun lain</li>
-                </ul>
-              </div>
-            </form>
+              <form onSubmit={handlePasswordSubmit}>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                    Password Saat Ini *
+                  </label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordForm.currentPassword}
+                    onChange={handlePasswordChange}
+                    className="form-control"
+                    required
+                    disabled={loading}
+                    style={{ padding: '12px' }}
+                    placeholder="Masukkan password saat ini"
+                  />
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                    Password Baru *
+                  </label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordChange}
+                    className="form-control"
+                    required
+                    disabled={loading}
+                    style={{ padding: '12px' }}
+                    placeholder="Minimal 6 karakter"
+                    minLength="6"
+                  />
+                  <small className="muted" style={{ fontSize: '12px', display: 'block', marginTop: '5px' }}>
+                    Minimal 6 karakter
+                  </small>
+                </div>
+
+                <div style={{ marginBottom: '25px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                    Konfirmasi Password Baru *
+                  </label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordForm.confirmPassword}
+                    onChange={handlePasswordChange}
+                    className="form-control"
+                    required
+                    disabled={loading}
+                    style={{ padding: '12px' }}
+                    placeholder="Ketik ulang password baru"
+                    minLength="6"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary" 
+                    disabled={loading || !token}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      opacity: !token ? 0.5 : 1 
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Memproses...
+                      </>
+                    ) : (
+                      <>
+                        <span>🔐</span> Ubah Password
+                      </>
+                    )}
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    className="btn btn-outline"
+                    onClick={() => setPasswordForm({
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmPassword: ''
+                    })}
+                    disabled={loading}
+                  >
+                    🔄 Clear
+                  </button>
+                  
+                  {!token && (
+                    <Link 
+                      to="/login" 
+                      className="btn btn-warning"
+                      style={{ 
+                        marginLeft: 'auto',
+                        padding: '8px 15px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      🔑 Login Ulang
+                    </Link>
+                  )}
+                </div>
+                
+                {passwordMessage && (
+                  <div style={{ 
+                    marginTop: '15px',
+                    padding: '12px',
+                    borderRadius: '4px',
+                    background: passwordMessage.includes('✅') ? '#e8f5e9' : 
+                              passwordMessage.includes('❌') ? '#ffebee' : '#fff3cd',
+                    color: passwordMessage.includes('✅') ? '#2e7d32' : 
+                          passwordMessage.includes('❌') ? '#c62828' : '#856404',
+                    border: `1px solid ${passwordMessage.includes('✅') ? '#c8e6c9' : 
+                              passwordMessage.includes('❌') ? '#ffcdd2' : '#ffeaa7'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    {passwordMessage.includes('✅') ? '✅' : 
+                    passwordMessage.includes('❌') ? '❌' : '⚠️'}
+                    <span>{passwordMessage.replace('✅ ', '').replace('❌ ', '').replace('⚠️ ', '')}</span>
+                  </div>
+                )}
+                
+                {/* Token Debug Info - hanya tampilkan di development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div style={{ 
+                    marginTop: '20px', 
+                    padding: '15px', 
+                    background: '#f1f8ff', 
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    border: '1px solid #c8e1ff'
+                  }}>
+                    <h4 style={{ marginBottom: '8px', fontSize: '12px', color: '#0366d6' }}>
+                      🐛 Debug Info:
+                    </h4>
+                    <div style={{ wordBreak: 'break-all' }}>
+                      <strong>Token Status:</strong> {token ? '✅ Ada' : '❌ Tidak Ada'}<br/>
+                      <strong>Token Preview:</strong> {token ? token.substring(0, 30) + '...' : 'N/A'}<br/>
+                      <strong>User ID:</strong> {user?.id || 'N/A'}<br/>
+                      <strong>API URL:</strong> {API_URL}
+                    </div>
+                  </div>
+                )}
+                
+                <div style={{ 
+                  marginTop: '30px', 
+                  padding: '15px', 
+                  background: '#f8f9fa', 
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}>
+                  <h4 style={{ marginBottom: '10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>💡</span> Tips Password Aman:
+                  </h4>
+                  <ul style={{ paddingLeft: '20px', margin: 0, color: '#666' }}>
+                    <li>Gunakan kombinasi huruf besar/kecil</li>
+                    <li>Tambahkan angka dan simbol</li>
+                    <li>Minimal 8 karakter lebih aman</li>
+                    <li>Jangan gunakan password yang sama dengan akun lain</li>
+                    <li>Hindari informasi pribadi (tanggal lahir, nama, dll)</li>
+                  </ul>
+                </div>
+              </form>
+            </div>
           )}
 
           {/* Settings Tab */}
@@ -718,6 +926,33 @@ function Profile() {
                     <strong>Email terverifikasi:</strong> {user.email ? '✅ Ya' : '❌ Belum'}
                   </p>
                 </div>
+                <button 
+                  onClick={async () => {
+                    try {
+                      const response = await axios.post(`${API_URL}/api/auth/refresh`, {}, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      });
+                      if (response.data.token) {
+                        localStorage.setItem('token', response.data.token);
+                        alert('Token refreshed!');
+                        window.location.reload();
+                      }
+                    } catch (error) {
+                      alert('Failed to refresh token: ' + error.message);
+                    }
+                  }}
+                  style={{
+                    padding: '5px 10px',
+                    fontSize: '12px',
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Refresh Token
+                </button>
               </div>
 
               {/* Danger Zone */}

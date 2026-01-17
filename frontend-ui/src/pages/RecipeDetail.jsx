@@ -8,6 +8,7 @@ function RecipeDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
   const [showVideo, setShowVideo] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -238,12 +239,12 @@ function RecipeDetail() {
             >
               {isSaved ? '⭐' : '☆'} {saveCount}
             </button>
-            {user && user.id === recipe.author._id && (
+            {user && user._id === recipe.author._id && (
               <Link 
                 to={`/edit-recipe/${id}`}
                 className="btn btn-primary"
               >
-                Edit Resep
+                ✏️ Edit Resep
               </Link>
             )}
           </div>
@@ -390,13 +391,23 @@ function RecipeDetail() {
             <div className="card" style={{ padding: '30px', marginTop: '30px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h3>🎬 Video Resep</h3>
-                <button 
-                  onClick={() => setShowVideo(!showVideo)}
-                  className="btn btn-outline"
-                  style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-                >
-                  {showVideo ? 'Sembunyikan Video' : 'Tampilkan Video'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    onClick={() => setShowVideo(!showVideo)}
+                    className="btn btn-outline"
+                  >
+                    {showVideo ? 'Sembunyikan Video' : 'Tampilkan Video'}
+                  </button>
+                  {showVideo && (
+                    <button 
+                      onClick={() => setShowVideoModal(true)}
+                      className="btn btn-outline"
+                      title="Buka video dalam fullscreen"
+                    >
+                      ⛶ Fullscreen
+                    </button>
+                  )}
+                </div>
               </div>
               
               {showVideo ? (
@@ -619,6 +630,69 @@ function RecipeDetail() {
             </div>
           </div>
         </div>
+
+        {/* Video Modal Fullscreen */}
+        {showVideoModal && recipe?.youtubeUrl && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}>
+            <div style={{ width: '100%', maxWidth: '1200px', position: 'relative' }}>
+              <button
+                onClick={() => setShowVideoModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: '-40px',
+                  right: 0,
+                  background: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+              
+              <div style={{ 
+                position: 'relative', 
+                paddingBottom: '56.25%', 
+                height: 0, 
+                overflow: 'hidden',
+                borderRadius: '8px'
+              }}>
+                <iframe
+                  src={getYouTubeEmbedUrl(recipe.youtubeUrl)}
+                  title="Video resep fullscreen"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 0
+                  }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -21,8 +21,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cookedpad
   retryWrites: true,
   w: 'majority',
   maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
+  tlsAllowInvalidCertificates: true
 })
   .then(() => console.log('Auth Service: MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));

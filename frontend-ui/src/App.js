@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import RecipeList from './pages/RecipeList';
 import RecipeDetail from './pages/RecipeDetail';
 import CreateRecipe from './pages/CreateRecipe';
+import EditRecipe from './pages/EditRecipe';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -37,6 +38,11 @@ function App() {
             <Route path="/create-recipe" element={
               <PrivateRoute>
                 <CreateRecipe />
+              </PrivateRoute>
+            } />
+            <Route path="/edit-recipe/:id" element={
+              <PrivateRoute>
+                <EditRecipe />
               </PrivateRoute>
             } />
             

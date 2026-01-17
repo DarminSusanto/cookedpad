@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 
 const app = express();
@@ -20,8 +21,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cookedpad
   retryWrites: true,
   w: 'majority',
   maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
+  tlsAllowInvalidCertificates: true
 })
   .then(() => console.log('Users Service: MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));
@@ -235,6 +238,45 @@ app.get('/api/users/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error('Get user by ID error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// Delete account
+app.delete('/api/profile', authenticateToken, async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password diperlukan untuk menghapus akun' 
+      });
+    }
+
+    const user = req.user;
+    
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Password salah' 
+      });
+    }
+
+    // Delete user
+    await User.findByIdAndDelete(user._id);
+
+    res.json({
+      success: true,
+      message: 'Akun berhasil dihapus'
+    });
+  } catch (error) {
+    console.error('Delete account error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Server error' 

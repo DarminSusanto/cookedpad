@@ -65,13 +65,16 @@ function Profile() {
   // Fetch user's recipes
   const fetchUserRecipes = async () => {
     try {
-      const response = await axios.get(`${RECIPE_API}/recipes`);
-      const userRecipes = response.data.recipes.filter(
-        recipe => recipe.author._id === user.id
-      );
-      setRecipes(userRecipes);
+      if (!user || !user._id) {
+        console.warn('User ID not available');
+        return;
+      }
+      
+      const response = await axios.get(`${RECIPE_API}/users/${user._id}/recipes`);
+      setRecipes(response.data.recipes || []);
     } catch (error) {
       console.error('Error fetching recipes:', error);
+      setRecipes([]);
     }
   };
 
@@ -293,16 +296,34 @@ function Profile() {
     setSelectedFile(e.target.files[0]);
   };
 
-  // Delete account function (optional)
+  // Delete account function
   const handleDeleteAccount = () => {
-    const confirmDelete = window.confirm('⚠️ PERINGATAN: Menghapus akun akan menghapus semua data Anda termasuk resep. Tindakan ini tidak dapat dibatalkan!\n\nKetik "DELETE" untuk konfirmasi:');
+    const confirmDelete = window.confirm('⚠️ PERINGATAN: Menghapus akun akan menghapus semua data Anda termasuk resep. Tindakan ini tidak dapat dibatalkan!');
     
     if (confirmDelete) {
-      const userInput = prompt('Ketik "DELETE" untuk menghapus akun Anda:');
-      if (userInput === 'DELETE') {
-        alert('Fitur penghapusan akun belum diimplementasikan di backend.');
-        // Implementasi API call untuk delete account
-        // axios.delete(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${token}` } })
+      const password = prompt('Masukkan password Anda untuk mengkonfirmasi penghapusan akun:');
+      
+      if (password) {
+        setLoading(true);
+        axios({
+          method: 'delete',
+          url: `${API_URL}/api/profile`,
+          data: { password },
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(response => {
+            if (response.data.success) {
+              alert('Akun Anda telah dihapus');
+              logout();
+              navigate('/');
+            }
+          })
+          .catch(error => {
+            console.error('Delete account error:', error.response?.data || error.message);
+            const errorMsg = error.response?.data?.message || error.message;
+            alert('Gagal menghapus akun: ' + errorMsg);
+          })
+          .finally(() => setLoading(false));
       }
     }
   };

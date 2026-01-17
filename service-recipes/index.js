@@ -21,8 +21,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cookedpad
   retryWrites: true,
   w: 'majority',
   maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
+  tlsAllowInvalidCertificates: true
 })
   .then(() => console.log('Recipes Service: MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));
@@ -166,6 +168,70 @@ app.get('/recipes/:id', async (req, res) => {
   }
 });
 
+// Update recipe
+app.put('/recipes/:id', authenticateToken, async (req, res) => {
+  try {
+    const recipe = await Recipe.findById(req.params.id);
+    
+    if (!recipe) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Recipe not found' 
+      });
+    }
+
+    // Check if user is the author
+    if (recipe.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Unauthorized' 
+      });
+    }
+
+    const {
+      title,
+      description,
+      ingredients,
+      instructions,
+      category,
+      prepTime,
+      cookTime,
+      servings,
+      difficulty,
+      images,
+      youtubeUrl
+    } = req.body;
+
+    // Update fields
+    if (title) recipe.title = title;
+    if (description) recipe.description = description;
+    if (ingredients) recipe.ingredients = ingredients;
+    if (instructions) recipe.instructions = instructions;
+    if (category) recipe.category = category;
+    if (prepTime !== undefined) recipe.prepTime = prepTime;
+    if (cookTime !== undefined) recipe.cookTime = cookTime;
+    if (servings !== undefined) recipe.servings = servings;
+    if (difficulty) recipe.difficulty = difficulty;
+    if (images) recipe.images = images;
+    if (youtubeUrl !== undefined) recipe.youtubeUrl = youtubeUrl;
+    recipe.updatedAt = Date.now();
+
+    await recipe.save();
+
+    res.json({
+      success: true,
+      message: 'Recipe updated successfully',
+      recipe
+    });
+  } catch (error) {
+    console.error('Update recipe error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
 // Create recipe
 app.post('/recipes', authenticateToken, async (req, res) => {
   try {
@@ -179,7 +245,8 @@ app.post('/recipes', authenticateToken, async (req, res) => {
       cookTime,
       servings,
       difficulty,
-      images
+      images,
+      youtubeUrl
     } = req.body;
     
     // Validation
@@ -201,6 +268,7 @@ app.post('/recipes', authenticateToken, async (req, res) => {
       servings: servings || 1,
       difficulty: difficulty || 'sedang',
       images: images || [],
+      youtubeUrl: youtubeUrl || null,
       author: req.user._id,
       likes: [],
       saves: []

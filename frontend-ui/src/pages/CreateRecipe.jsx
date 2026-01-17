@@ -136,8 +136,11 @@ function CreateRecipe() {
     setError('');
     setSuccess('');
 
+    // Get fresh token from localStorage
+    const currentToken = localStorage.getItem('token') || token;
+    
     // Check if token is valid
-    if (!token) {
+    if (!currentToken) {
       setError('Token tidak valid. Silakan login kembali.');
       setLoading(false);
       return;
@@ -170,7 +173,10 @@ function CreateRecipe() {
 
     try {
       const response = await axios.post(`${API_URL}/recipes`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${currentToken}`,
+          'Content-Type': 'application/json'
+        }
       });
 
       if (response.data.success) {
@@ -180,6 +186,7 @@ function CreateRecipe() {
         }, 2000);
       }
     } catch (error) {
+      console.error('Submit error:', error.response?.data || error.message);
       setError('Gagal membuat resep: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);

@@ -29,19 +29,28 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cookedpad
 // Auth Middleware
 const authenticateToken = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
     
-    if (!token) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ 
         success: false, 
         message: 'Access denied. No token provided.' 
       });
     }
 
+    const token = authHeader.slice(7); // Remove 'Bearer '
+    
     const decoded = jwt.verify(
       token, 
       process.env.JWT_SECRET || 'supersecretkey123'
     );
+
+    if (!decoded.userId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token structure' 
+      });
+    }
 
     const user = await User.findById(decoded.userId);
     if (!user) {
@@ -54,10 +63,25 @@ const authenticateToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('Authentication error:', error.message);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token format' 
+      });
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token expired' 
+      });
+    }
+    
     res.status(401).json({ 
       success: false, 
-      message: 'Invalid token' 
+      message: 'Authentication failed' 
     });
   }
 };

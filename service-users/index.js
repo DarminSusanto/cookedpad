@@ -13,7 +13,16 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cookedpad')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cookedpad', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  ssl: true,
+  retryWrites: true,
+  w: 'majority',
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
   .then(() => console.log('Users Service: MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 

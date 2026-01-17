@@ -290,49 +290,6 @@ app.post('/recipes', authenticateToken, async (req, res) => {
   }
 });
 
-// Update recipe
-app.put('/recipes/:id', authenticateToken, async (req, res) => {
-  try {
-    const recipe = await Recipe.findById(req.params.id);
-    
-    if (!recipe) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Recipe not found' 
-      });
-    }
-    
-    // Check if user is the author
-    if (recipe.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to update this recipe' 
-      });
-    }
-    
-    Object.keys(req.body).forEach(key => {
-      if (req.body[key] !== undefined) {
-        recipe[key] = req.body[key];
-      }
-    });
-    
-    recipe.updatedAt = Date.now();
-    await recipe.save();
-    
-    res.json({
-      success: true,
-      message: 'Recipe updated successfully',
-      recipe
-    });
-  } catch (error) {
-    console.error('Update recipe error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
-    });
-  }
-});
-
 // Delete recipe
 app.delete('/recipes/:id', authenticateToken, async (req, res) => {
   try {

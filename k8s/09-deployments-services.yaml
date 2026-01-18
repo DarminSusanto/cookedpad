@@ -1,0 +1,642 @@
+---
+# ===========================
+# FRONTEND DEPLOYMENT & SERVICE
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookedpad-frontend
+  namespace: cookedpad
+  labels:
+    app: cookedpad-frontend
+    tier: frontend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: cookedpad-frontend
+  template:
+    metadata:
+      labels:
+        app: cookedpad-frontend
+        tier: frontend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: cookedpad-sa
+      securityContext:
+        fsGroup: 101
+        runAsNonRoot: true
+        runAsUser: 101
+      containers:
+      - name: frontend
+        image: darminsusanto/cookedpad-frontend:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: cookedpad-config
+        env:
+        - name: REACT_APP_API_AUTH
+          valueFrom:
+            configMapKeyRef:
+              name: cookedpad-config
+              key: REACT_APP_API_AUTH
+        - name: REACT_APP_API_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: cookedpad-config
+              key: REACT_APP_API_USERS
+        - name: REACT_APP_API_RECIPES
+          valueFrom:
+            configMapKeyRef:
+              name: cookedpad-config
+              key: REACT_APP_API_RECIPES
+        - name: REACT_APP_API_COMMENTS
+          valueFrom:
+            configMapKeyRef:
+              name: cookedpad-config
+              key: REACT_APP_API_COMMENTS
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+      volumes:
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - cookedpad-frontend
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cookedpad-frontend
+  namespace: cookedpad
+  labels:
+    app: cookedpad-frontend
+    tier: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: cookedpad-frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# ===========================
+# AUTH SERVICE DEPLOYMENT & SERVICE
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookedpad-auth
+  namespace: cookedpad
+  labels:
+    app: cookedpad-auth
+    tier: backend
+    service: auth
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: cookedpad-auth
+  template:
+    metadata:
+      labels:
+        app: cookedpad-auth
+        tier: backend
+        service: auth
+    spec:
+      serviceAccountName: cookedpad-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: auth
+        image: darminsusanto/cookedpad-auth:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: cookedpad-config
+        env:
+        - name: PORT
+          value: "3001"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: cookedpad-secrets
+              key: MONGODB_URI
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3001
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3001
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - cookedpad-auth
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cookedpad-auth
+  namespace: cookedpad
+  labels:
+    app: cookedpad-auth
+    tier: backend
+    service: auth
+spec:
+  type: ClusterIP
+  selector:
+    app: cookedpad-auth
+  ports:
+  - name: http
+    port: 3001
+    targetPort: 3001
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# ===========================
+# USERS SERVICE DEPLOYMENT & SERVICE
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookedpad-users
+  namespace: cookedpad
+  labels:
+    app: cookedpad-users
+    tier: backend
+    service: users
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: cookedpad-users
+  template:
+    metadata:
+      labels:
+        app: cookedpad-users
+        tier: backend
+        service: users
+    spec:
+      serviceAccountName: cookedpad-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: users
+        image: darminsusanto/cookedpad-users:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3002
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: cookedpad-config
+        env:
+        - name: PORT
+          value: "3002"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: cookedpad-secrets
+              key: MONGODB_URI
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3002
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3002
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - cookedpad-users
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cookedpad-users
+  namespace: cookedpad
+  labels:
+    app: cookedpad-users
+    tier: backend
+    service: users
+spec:
+  type: ClusterIP
+  selector:
+    app: cookedpad-users
+  ports:
+  - name: http
+    port: 3002
+    targetPort: 3002
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# ===========================
+# RECIPES SERVICE DEPLOYMENT & SERVICE
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookedpad-recipes
+  namespace: cookedpad
+  labels:
+    app: cookedpad-recipes
+    tier: backend
+    service: recipes
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: cookedpad-recipes
+  template:
+    metadata:
+      labels:
+        app: cookedpad-recipes
+        tier: backend
+        service: recipes
+    spec:
+      serviceAccountName: cookedpad-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: recipes
+        image: darminsusanto/cookedpad-recipes:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3003
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: cookedpad-config
+        env:
+        - name: PORT
+          value: "3003"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: cookedpad-secrets
+              key: MONGODB_URI
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3003
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3003
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - cookedpad-recipes
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cookedpad-recipes
+  namespace: cookedpad
+  labels:
+    app: cookedpad-recipes
+    tier: backend
+    service: recipes
+spec:
+  type: ClusterIP
+  selector:
+    app: cookedpad-recipes
+  ports:
+  - name: http
+    port: 3003
+    targetPort: 3003
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# ===========================
+# COMMENTS SERVICE DEPLOYMENT & SERVICE
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookedpad-comments
+  namespace: cookedpad
+  labels:
+    app: cookedpad-comments
+    tier: backend
+    service: comments
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: cookedpad-comments
+  template:
+    metadata:
+      labels:
+        app: cookedpad-comments
+        tier: backend
+        service: comments
+    spec:
+      serviceAccountName: cookedpad-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: comments
+        image: darminsusanto/cookedpad-comments:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3004
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: cookedpad-config
+        env:
+        - name: PORT
+          value: "3004"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: cookedpad-secrets
+              key: MONGODB_URI
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3004
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3004
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - cookedpad-comments
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cookedpad-comments
+  namespace: cookedpad
+  labels:
+    app: cookedpad-comments
+    tier: backend
+    service: comments
+spec:
+  type: ClusterIP
+  selector:
+    app: cookedpad-comments
+  ports:
+  - name: http
+    port: 3004
+    targetPort: 3004
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800

@@ -1,0 +1,120 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cookedpad-ingress
+  namespace: cookedpad
+  labels:
+    app: cookedpad
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  # Frontend Route
+  - host: "cookedpad.local"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-frontend
+            port:
+              number: 80
+
+  # Auth API Route
+  - host: "auth.cookedpad.local"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-auth
+            port:
+              number: 3001
+
+  # Users API Route
+  - host: "users.cookedpad.local"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-users
+            port:
+              number: 3002
+
+  # Recipes API Route
+  - host: "recipes.cookedpad.local"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-recipes
+            port:
+              number: 3003
+
+  # Comments API Route
+  - host: "comments.cookedpad.local"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-comments
+            port:
+              number: 3004
+
+  # Catch-all route (optional)
+  - host: "api.cookedpad.local"
+    http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-auth
+            port:
+              number: 3001
+      - path: /users
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-users
+            port:
+              number: 3002
+      - path: /recipes
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-recipes
+            port:
+              number: 3003
+      - path: /comments
+        pathType: Prefix
+        backend:
+          service:
+            name: cookedpad-comments
+            port:
+              number: 3004
+
+  # TLS configuration (optional, requires cert-manager)
+  # tls:
+  # - secretName: cookedpad-tls
+  #   hosts:
+  #   - cookedpad.local
+  #   - auth.cookedpad.local
+  #   - users.cookedpad.local
+  #   - recipes.cookedpad.local
+  #   - comments.cookedpad.local

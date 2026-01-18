@@ -1,0 +1,319 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                  ✅ KUBERNETES DEPLOYMENT - COMPLETE                          ║
+║                                                                               ║
+║         Semua komponen sudah siap sesuai Step 8 deployment guide!             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 KUBERNETES FILE STRUCTURE - ORGANIZED & PRODUCTION-READY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+k8s/
+├── 01-namespace.yaml          ✅ Namespace: cookedpad
+├── 02-configmap.yaml          ✅ Configuration (ports, URLs, env vars)
+├── 03-secrets.yaml            ✅ Secrets + RBAC (auto-allow)
+│
+├── deployments/               ✅ Deployment specifications
+│   ├── frontend.yaml          - 2 replicas, LoadBalancer ready
+│   ├── auth.yaml              - 2 replicas, ClusterIP
+│   ├── users.yaml             - 2 replicas, ClusterIP
+│   ├── recipes.yaml           - 2 replicas, ClusterIP
+│   └── comments.yaml          - 2 replicas, ClusterIP
+│
+├── services/                  ✅ Service definitions
+│   ├── frontend.yaml          - LoadBalancer (80)
+│   ├── auth.yaml              - ClusterIP (3001)
+│   ├── users.yaml             - ClusterIP (3002)
+│   ├── recipes.yaml           - ClusterIP (3003)
+│   └── comments.yaml          - ClusterIP (3004)
+│
+├── 04-hpa.yaml                ✅ Horizontal Pod Autoscaler
+│   - Frontend: 2-10 replicas
+│   - Services: 2-8 replicas each
+│   - Triggers: CPU 70-75%, Memory 80-85%
+│
+├── 05-ingress.yaml            ✅ Ingress Routing
+│   - cookedpad.local → Frontend
+│   - auth.cookedpad.local → Auth API
+│   - users.cookedpad.local → Users API
+│   - recipes.cookedpad.local → Recipes API
+│   - comments.cookedpad.local → Comments API
+│   - api.cookedpad.local → API aggregate
+│
+├── deploy.ps1                 ✅ PowerShell deployment script
+├── deploy.sh                  ✅ Bash deployment script
+├── cleanup.ps1                ✅ PowerShell cleanup script
+├── cleanup.sh                 ✅ Bash cleanup script
+└── KUBERNETES-GUIDE.md        ✅ Complete documentation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ STEP-BY-STEP DEPLOYMENT (CORRECT ORDER)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPTION A: Automated Deployment (Recommended)
+┌─────────────────────────────────────────┐
+│ PowerShell (Windows):                   │
+│ $ cd k8s                                │
+│ $ .\deploy.ps1                          │
+│                                         │
+│ Bash (Linux/Mac):                       │
+│ $ cd k8s                                │
+│ $ ./deploy.sh                           │
+└─────────────────────────────────────────┘
+
+OPTION B: Manual Deployment (Step by Step)
+┌─────────────────────────────────────────┐
+│ kubectl apply -f 01-namespace.yaml      │
+│ kubectl apply -f 02-configmap.yaml      │
+│ kubectl apply -f 03-secrets.yaml        │
+│                                         │
+│ kubectl apply -f k8s/services/          │
+│ kubectl apply -f k8s/deployments/       │
+│                                         │
+│ kubectl apply -f 04-hpa.yaml            │
+│ kubectl apply -f 05-ingress.yaml        │
+└─────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 DEPLOYMENT COMPONENTS CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Step 1: Namespace
+   └─ cookedpad namespace for resource isolation
+
+✅ Step 2: ConfigMap (02-configmap.yaml)
+   ├─ Service ports (3001-3004)
+   ├─ API endpoints (internal URLs)
+   ├─ Logging configuration
+   └─ Environment variables
+
+✅ Step 3: Secrets & RBAC (03-secrets.yaml)
+   ├─ MongoDB connection string
+   ├─ JWT secret key
+   ├─ API keys
+   └─ ServiceAccount + ClusterRole + ClusterRoleBinding
+
+✅ Step 4: Services (k8s/services/)
+   ├─ Frontend Service (LoadBalancer, port 80)
+   ├─ Auth Service (ClusterIP, port 3001)
+   ├─ Users Service (ClusterIP, port 3002)
+   ├─ Recipes Service (ClusterIP, port 3003)
+   └─ Comments Service (ClusterIP, port 3004)
+
+✅ Step 5: Deployments (k8s/deployments/)
+   ├─ Frontend Deployment (2 replicas, Nginx)
+   ├─ Auth Deployment (2 replicas, Node.js)
+   ├─ Users Deployment (2 replicas, Node.js)
+   ├─ Recipes Deployment (2 replicas, Node.js)
+   └─ Comments Deployment (2 replicas, Node.js)
+
+✅ Step 7: HPA (04-hpa.yaml)
+   ├─ Frontend HPA (min: 2, max: 10 replicas)
+   ├─ Auth HPA (min: 2, max: 8 replicas)
+   ├─ Users HPA (min: 2, max: 8 replicas)
+   ├─ Recipes HPA (min: 2, max: 8 replicas)
+   └─ Comments HPA (min: 2, max: 8 replicas)
+
+✅ Step 8: Ingress (05-ingress.yaml)
+   ├─ cookedpad.local → Frontend
+   ├─ auth.cookedpad.local → Auth API
+   ├─ users.cookedpad.local → Users API
+   ├─ recipes.cookedpad.local → Recipes API
+   ├─ comments.cookedpad.local → Comments API
+   └─ api.cookedpad.local → API gateway routes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 VERIFICATION COMMANDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Check All Resources:
+  $ kubectl get all -n cookedpad
+
+Check Specific Resources:
+  $ kubectl get deployments -n cookedpad       # Deployments
+  $ kubectl get services -n cookedpad          # Services
+  $ kubectl get pods -n cookedpad              # Pods
+  $ kubectl get hpa -n cookedpad               # HPA
+  $ kubectl get ingress -n cookedpad           # Ingress
+  $ kubectl get configmap -n cookedpad         # ConfigMaps
+  $ kubectl get secret -n cookedpad            # Secrets
+
+View Logs:
+  $ kubectl logs -f deployment/cookedpad-auth -n cookedpad
+  $ kubectl logs -f pod/<pod-name> -n cookedpad
+
+Describe Resources:
+  $ kubectl describe pod <pod-name> -n cookedpad
+  $ kubectl describe deployment cookedpad-frontend -n cookedpad
+
+Real-time Monitoring:
+  $ kubectl get pods -n cookedpad -w          # Watch pods
+  $ kubectl top nodes                          # Node metrics
+  $ kubectl top pods -n cookedpad              # Pod metrics
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌐 ACCESSING THE APPLICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Add to hosts file (/etc/hosts or C:\Windows\System32\drivers\etc\hosts)
+─────────────────────────────────────────────────────────────────────────────
+127.0.0.1 cookedpad.local
+127.0.0.1 auth.cookedpad.local
+127.0.0.1 users.cookedpad.local
+127.0.0.1 recipes.cookedpad.local
+127.0.0.1 comments.cookedpad.local
+127.0.0.1 api.cookedpad.local
+
+Step 2: Access Services
+─────────────────────────────────────────────────────────────────────────────
+Frontend:     http://cookedpad.local
+Auth API:     http://auth.cookedpad.local
+Users API:    http://users.cookedpad.local
+Recipes API:  http://recipes.cookedpad.local
+Comments API: http://comments.cookedpad.local
+
+Alternative (Port Forward):
+─────────────────────────────────────────────────────────────────────────────
+$ kubectl port-forward svc/cookedpad-frontend 8080:80 -n cookedpad
+Access: http://localhost:8080
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 MANAGEMENT TASKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Manual Scaling:
+  $ kubectl scale deployment cookedpad-frontend --replicas=5 -n cookedpad
+
+Rolling Update:
+  $ kubectl set image deployment/cookedpad-frontend \
+    frontend=darminsusanto/cookedpad-frontend:v2 -n cookedpad
+  $ kubectl rollout status deployment/cookedpad-frontend -n cookedpad
+
+Rollback:
+  $ kubectl rollout undo deployment/cookedpad-frontend -n cookedpad
+
+Update ConfigMap:
+  $ kubectl edit configmap cookedpad-config -n cookedpad
+  $ kubectl rollout restart deployment -n cookedpad
+
+Update Secrets:
+  $ kubectl edit secret cookedpad-secrets -n cookedpad
+  $ kubectl rollout restart deployment -n cookedpad
+
+View HPA Status:
+  $ kubectl describe hpa cookedpad-frontend-hpa -n cookedpad
+
+Cleanup (Delete All):
+  $ kubectl delete namespace cookedpad
+  OR
+  $ .\cleanup.ps1  (PowerShell)
+  $ ./cleanup.sh   (Bash)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 KEY FEATURES IMPLEMENTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Namespace Isolation
+   └─ All resources in 'cookedpad' namespace
+
+✅ ConfigMap Management
+   └─ Centralized non-sensitive configuration
+
+✅ Secrets Management
+   └─ Secure storage of sensitive data (MongoDB URI, JWT keys)
+
+✅ RBAC (Permissive for Dev)
+   └─ Auto-allow all processes (ServiceAccount + ClusterRole)
+
+✅ Multi-Replica Deployments
+   └─ 2 replicas per service for high availability
+
+✅ Health Checks
+   ├─ Liveness Probes (restart if down)
+   ├─ Readiness Probes (exclude if not ready)
+   └─ Both configured for all services
+
+✅ Horizontal Pod Autoscaling
+   ├─ Frontend: scales 2-10 based on CPU/Memory
+   └─ Services: scales 2-8 based on CPU/Memory
+
+✅ Service Discovery
+   ├─ LoadBalancer for Frontend (external access)
+   └─ ClusterIP for internal services (service-to-service)
+
+✅ Ingress Routing
+   ├─ Domain-based routing
+   ├─ Path-based routing
+   └─ Single entry point for all APIs
+
+✅ Security Context
+   ├─ Non-root users
+   ├─ Read-only root filesystem (where applicable)
+   └─ Dropped capabilities
+
+✅ Pod Anti-Affinity
+   └─ Spread pods across nodes for better availability
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 KUBERNETES-GUIDE.md
+   └─ Complete Kubernetes guide with troubleshooting
+
+📖 k8s/README.md
+   └─ Kubernetes setup instructions
+
+📖 DEPLOYMENT.md
+   └─ General deployment documentation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ IMPORTANT NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. RBAC is PERMISSIVE (auto-allow all) - FOR DEVELOPMENT ONLY
+   ➜ For production, create restrictive RBAC policies per service
+
+2. Deployment Order MATTERS:
+   ➜ Always deploy: Namespace → ConfigMap → Secrets → Services → Deployments → HPA → Ingress
+
+3. Prerequisites:
+   ➜ kubectl configured
+   ➜ Kubernetes cluster running (Docker Desktop, Minikube, Kind, etc.)
+   ➜ Ingress controller installed (nginx-ingress recommended)
+   ➜ metrics-server for HPA to work
+
+4. Hosts File Configuration Required:
+   ➜ Add entries to access Ingress (see section above)
+
+5. MongoDB Connection:
+   ➜ Configured via Secrets - update MONGODB_URI for your environment
+
+6. Production Checklist:
+   ☐ Replace permissive RBAC with restrictive policies
+   ☐ Setup TLS/SSL certificates (cert-manager)
+   ☐ Add PersistentVolumes for data
+   ☐ Configure resource quotas and limits
+   ☐ Setup monitoring (Prometheus + Grafana)
+   ☐ Add network policies
+   ☐ Configure pod disruption budgets
+   ☐ Implement backup strategy
+   ☐ Enable audit logging
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+✅ STATUS: COMPLETE & READY FOR KUBERNETES DEPLOYMENT
+📅 Date: 2026-01-18
+🎯 All 8 Steps Implemented:
+   [✓] Step 1: Namespace
+   [✓] Step 2: ConfigMap
+   [✓] Step 3: Secrets + RBAC
+   [✓] Step 4: Services
+   [✓] Step 5: Deployments
+   [✓] Step 6: Waiting/Ready check (built into deploy script)
+   [✓] Step 7: HPA
+   [✓] Step 8: Ingress
+
+Ready to deploy! Use: .\deploy.ps1 or ./deploy.sh
+
+═══════════════════════════════════════════════════════════════════════════════════

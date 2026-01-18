@@ -1,61 +1,120 @@
-# docker-compose.yml yang sudah diperbaiki
+networks:
+  cookedpad-network:
+    driver: bridge
+
 services:
+  # Auth Service
   service-auth:
-    build: ./service-auth
-    container_name: service_auth
+    image: darminsusanto/cookedpad-auth:v1
+    container_name: cookedpad-auth
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       - MONGODB_URI=mongodb+srv://darmin_susanto:PGJHkYIIxrxQmNic@cookedpad.yfqjrlk.mongodb.net/cookedpad
       - JWT_SECRET=supersecretkey123
-      - PORT=3000
+      - PORT=3001
+      - NODE_ENV=production
+    networks:
+      - cookedpad-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
+  # Users Service
   service-users:
-    build: ./service-users
-    container_name: service_users
+    image: darminsusanto/cookedpad-users:v1
+    container_name: cookedpad-users
     ports:
-      - "3002:3000"
+      - "3002:3002"
     environment:
       - MONGODB_URI=mongodb+srv://darmin_susanto:PGJHkYIIxrxQmNic@cookedpad.yfqjrlk.mongodb.net/cookedpad
       - JWT_SECRET=supersecretkey123
-      - PORT=3000
+      - PORT=3002
+      - NODE_ENV=production
+    networks:
+      - cookedpad-network
     restart: unless-stopped
-
-  service-recipes:
-    build: ./service-recipes
-    container_name: service_recipes
-    ports:
-      - "3003:3000"
-    environment:
-      - MONGODB_URI=mongodb+srv://darmin_susanto:PGJHkYIIxrxQmNic@cookedpad.yfqjrlk.mongodb.net/cookedpad
-      - JWT_SECRET=supersecretkey123
-      - PORT=3000
-    restart: unless-stopped
-
-  service-comments:
-    build: ./service-comments
-    container_name: service_comments
-    ports:
-      - "3004:3000"
-    environment:
-      - MONGODB_URI=mongodb+srv://darmin_susanto:PGJHkYIIxrxQmNic@cookedpad.yfqjrlk.mongodb.net/cookedpad
-      - PORT=3000
-    restart: unless-stopped
-
-  frontend-ui:
-    build: ./frontend-ui
-    container_name: frontend_ui
-    ports:
-      - "8080:80"
     depends_on:
       - service-auth
-      - service-users
-      - service-recipes
-      - service-comments
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Recipes Service
+  service-recipes:
+    image: darminsusanto/cookedpad-recipes:v1
+    container_name: cookedpad-recipes
+    ports:
+      - "3003:3003"
+    environment:
+      - MONGODB_URI=mongodb+srv://darmin_susanto:PGJHkYIIxrxQmNic@cookedpad.yfqjrlk.mongodb.net/cookedpad
+      - JWT_SECRET=supersecretkey123
+      - PORT=3003
+      - NODE_ENV=production
+    networks:
+      - cookedpad-network
+    restart: unless-stopped
+    depends_on:
+      - service-auth
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Comments Service
+  service-comments:
+    image: darminsusanto/cookedpad-comments:v1
+    container_name: cookedpad-comments
+    ports:
+      - "3004:3004"
+    environment:
+      - MONGODB_URI=mongodb+srv://darmin_susanto:PGJHkYIIxrxQmNic@cookedpad.yfqjrlk.mongodb.net/cookedpad
+      - JWT_SECRET=supersecretkey123
+      - PORT=3004
+      - NODE_ENV=production
+    networks:
+      - cookedpad-network
+    restart: unless-stopped
+    depends_on:
+      - service-auth
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Frontend UI
+  frontend-ui:
+    image: darminsusanto/cookedpad-frontend:v1
+    container_name: cookedpad-frontend
+    ports:
+      - "8080:80"
     environment:
       - REACT_APP_API_AUTH=http://localhost:3001
       - REACT_APP_API_USERS=http://localhost:3002
       - REACT_APP_API_RECIPES=http://localhost:3003
       - REACT_APP_API_COMMENTS=http://localhost:3004
+    networks:
+      - cookedpad-network
     restart: unless-stopped
+    depends_on:
+      - service-auth
+      - service-users
+      - service-recipes
+      - service-comments
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

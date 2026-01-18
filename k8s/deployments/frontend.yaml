@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookedpad-frontend
+  namespace: cookedpad
+  labels:
+    app: cookedpad-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cookedpad-frontend
+  template:
+    metadata:
+      labels:
+        app: cookedpad-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: darminsusanto/cookedpad-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5

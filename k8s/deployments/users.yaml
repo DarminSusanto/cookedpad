@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookedpad-users
+  namespace: cookedpad
+  labels:
+    app: cookedpad-users
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cookedpad-users
+  template:
+    metadata:
+      labels:
+        app: cookedpad-users
+    spec:
+      containers:
+      - name: users
+        image: darminsusanto/cookedpad-users:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3002
+          name: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3002
+          initialDelaySeconds: 5
+          periodSeconds: 5
